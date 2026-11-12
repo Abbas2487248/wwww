@@ -38,10 +38,18 @@ jobs:
       - name: Rebrand engine as Nasikh
         working-directory: engine
         run: |
-          sed -i 's/<string name="vxp">VirtualApp<\\/string>/<string name="vxp">ناسخ<\\/string>/' app/src/main/res/values/strings.xml
-          sed -i 's/<string name="app_name">VirtualApp<\\/string>/<string name="app_name">ناسخ<\\/string>/' app/src/main/res/values/strings.xml
-          sed -i 's/rootProject.name="VirtualApp"/rootProject.name="Nasikh"/' settings.gradle
-          sed -i 's/VirtualApp-\${variant.versionName}/Nasikh-\${variant.versionName}/' app/build.gradle
+          python3 - <<'PY'
+          from pathlib import Path
+          strings = Path("app/src/main/res/values/strings.xml")
+          data = strings.read_text()
+          data = data.replace('<string name="vxp">VirtualApp</string>', '<string name="vxp">ناسخ</string>')
+          data = data.replace('<string name="app_name">VirtualApp</string>', '<string name="app_name">ناسخ</string>')
+          strings.write_text(data)
+          settings = Path("settings.gradle")
+          settings.write_text(settings.read_text().replace('rootProject.name="VirtualApp"', 'rootProject.name="Nasikh"'))
+          gradle = Path("app/build.gradle")
+          gradle.write_text(gradle.read_text().replace('VirtualApp-${variant.versionName}', 'Nasikh-${variant.versionName}'))
+          PY
 
       - name: Build single host app with all ABIs
         working-directory: engine
