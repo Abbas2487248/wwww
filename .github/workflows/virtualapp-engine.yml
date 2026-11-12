@@ -1,0 +1,46 @@
+name: Test VirtualApp Engine
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/virtualapp-engine.yml"
+
+jobs:
+  build-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Nasikh repository
+        uses: actions/checkout@v4
+
+      - name: Checkout Android 14 VirtualApp engine
+        uses: actions/checkout@v4
+        with:
+          repository: ISEKHON/VirtualApp
+          ref: main
+          path: virtualapp-engine
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install required Android NDK
+        run: sdkmanager "ndk;21.4.7075529" "platforms;android-34" "build-tools;30.0.0"
+
+      - name: Build VirtualApp engine host APK
+        working-directory: virtualapp-engine
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Upload engine test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: virtualapp-engine-test-apk
+          path: virtualapp-engine/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
