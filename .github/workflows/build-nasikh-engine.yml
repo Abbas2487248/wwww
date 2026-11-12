@@ -1,0 +1,60 @@
+name: Build Nasikh Engine APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - ".github/workflows/build-nasikh-engine.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Nasikh
+        uses: actions/checkout@v4
+        with:
+          path: nasikh
+
+      - name: Checkout VirtualApp engine
+        uses: actions/checkout@v4
+        with:
+          repository: ISEKHON/VirtualApp
+          ref: main
+          path: engine
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        run: yes | sdkmanager "ndk;21.4.7075529"
+
+      - name: Rebrand engine as Nasikh
+        working-directory: engine
+        run: |
+          sed -i 's/<string name="vxp">VirtualApp<\\/string>/<string name="vxp">ناسخ<\\/string>/' app/src/main/res/values/strings.xml
+          sed -i 's/<string name="app_name">VirtualApp<\\/string>/<string name="app_name">ناسخ<\\/string>/' app/src/main/res/values/strings.xml
+          sed -i 's/rootProject.name="VirtualApp"/rootProject.name="Nasikh"/' settings.gradle
+          sed -i 's/VirtualApp-\${variant.versionName}/Nasikh-\${variant.versionName}/' app/build.gradle
+
+      - name: Build single host app with all ABIs
+        working-directory: engine
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Upload Nasikh APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: nasikh-engine-apks
+          path: |
+            engine/app/build/outputs/apk/debug/Nasikh-*.apk
+            engine/app/build/outputs/apk/debug/VirtualApp-*.apk
+          if-no-files-found: error
+          retention-days: 14
